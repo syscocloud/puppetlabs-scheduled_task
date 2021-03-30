@@ -160,11 +160,12 @@ scheduled_task { 'Disk Cleanup On Restart':
     'schedule'  => 'boot',
     'minutes_interval' => '60',
     'minutes_duration' => '720'
+    'minutes_delay' => '10',
   }],
   user          => 'system',
 }
 ~~~
-* Note: Duration properties like `minutes_duration` and `minutes_interval` must have `compatibility => 2` or higher specified for `boot` triggers. Windows does not support those options at the "Windows XP or Windows Server 2003 computer" compatibility level which is the default when compatibility is left unspecified.
+* Note: Duration properties like `minutes_duration`, `minutes_interval` and `minutes_delay` must have `compatibility => 2` or higher specified for `boot` triggers. Windows does not support those options at the "Windows XP or Windows Server 2003 computer" compatibility level which is the default when compatibility is left unspecified.
 
 If you want a task to run at logon, use the `logon` trigger:
 
@@ -247,6 +248,10 @@ Can be set to:
 
 See the [Microsoft documentation on compatibility levels and their differences](https://msdn.microsoft.com/en-us/library/windows/desktop/aa384138\(v=vs.85\).aspx) for more information.
 
+##### `description`
+
+Set the description for the task.
+
 ##### `provider`
 
 The specific backend to use for this scheduled_task resource.
@@ -284,6 +289,8 @@ For all triggers:
   You should format dates as YYYY-MM-DD, although other date formats may work (under the hood, this uses Date.parse).
 * `minutes_interval` — The repeat interval in minutes.
 * `minutes_duration` — The duration in minutes, needs to be greater than the minutes_interval.
+* For boot triggers:
+  * `minutes_delay` - How many minutes the execution of the task should be delayed by. Defaults to 0
 * For daily triggers:
   * `every` — How often the task should run, as a number of days.
     Defaults to 1.
