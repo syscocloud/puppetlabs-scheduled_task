@@ -93,6 +93,7 @@ module PuppetX::PuppetLabs::ScheduledTask
         'day_of_week',
         'minutes_interval',
         'minutes_duration',
+        'minutes_delay',
         'user_id',
         'disable_time_zone_synchronization',
       ].freeze
@@ -145,6 +146,10 @@ module PuppetX::PuppetLabs::ScheduledTask
             'schedule' => 'monthly',
             'months'   => V2::Month.indexes,
             'days'     => 0,
+          }
+        when 'boot'
+          {
+            'minutes_delay' => 0,
           }
         end
       end
@@ -217,6 +222,10 @@ module PuppetX::PuppetLabs::ScheduledTask
         when 'once'
           raise ArgumentError, "Must specify 'start_date' when defining a one-time trigger" unless manifest_hash['start_date']
         end
+        
+        if manifest_hash.key?('minutes_delay') && manifest_hash['schedule'] != 'boot'
+          raise ArgumentError, "minutes_delay only valid for boot trigger"
+        end
 
         if manifest_hash.key?('every')
           every = begin
@@ -264,6 +273,17 @@ module PuppetX::PuppetLabs::ScheduledTask
             raise ArgumentError, 'minutes_duration must be an integer greater than minutes_interval and equal to or greater than 0'
           end
         end
+        
+	# minutes_delay must be integer and not negative
+        if manifest_hash['minutes_delay']
+          minutes_delay = Integer(manifest_hash['minutes_delay'])
+          if minutes_delay < 0
+            raise ArgumentError, 'minutes_delay must be an integer greater or equal to 0'
+          end
+        else
+          manifest_hash['minutes_delay'] = 0 unless manifest_hash['schedule'] != 'boot'
+        end
+
 
         # interval set with / without duration
         if manifest_hash['minutes_interval']
@@ -280,8 +300,19 @@ module PuppetX::PuppetLabs::ScheduledTask
             raise ArgumentError, 'minutes_interval cannot be set without minutes_duration also being set to a number greater than 0'
           end
         end
-        manifest_hash['minutes_interval'] = interval if interval
-        manifest_hash['minutes_duration'] = duration if duration
+        
+        if interval
+          manifest_hash['minutes_interval'] = interval
+        else
+          manifest_hash['minutes_interval'] = 0
+        end
+
+        if duration
+          manifest_hash['minutes_duration'] = duration
+        else
+          manifest_hash['minutes_duration'] = 0
+        end
+
 
         if manifest_hash['start_date']
           start_date = Time.parse(manifest_hash['start_date'] + ' 00:00')
@@ -303,7 +334,6 @@ module PuppetX::PuppetLabs::ScheduledTask
           user_id = Puppet::Util::Windows::SID.sid_to_name(Puppet::Util::Windows::SID.name_to_sid(user_id)) unless user_id == ''
           manifest_hash['user_id'] = user_id
         end
-
         manifest_hash
       end
 
@@ -716,7 +746,7 @@ module PuppetX::PuppetLabs::ScheduledTask
           'minutes_interval' => Duration.to_minutes(i_trigger.Repetition.Interval) || 0,
           'minutes_duration' => Duration.to_minutes(i_trigger.Repetition.Duration) || 0,
         }
-
+        
         case i_trigger.Type
         when Type::TASK_TRIGGER_TIME
           manifest_hash['schedule'] = 'once'
@@ -743,13 +773,13 @@ module PuppetX::PuppetLabs::ScheduledTask
           manifest_hash['which_occurrence'] = 'last' if i_trigger.RunOnLastWeekOfMonth
         when Type::TASK_TRIGGER_BOOT
           manifest_hash['schedule'] = 'boot'
+          manifest_hash['minutes_delay'] = Duration.to_minutes(i_trigger.Delay)
         when Type::TASK_TRIGGER_LOGON
           # Resolve the UserID unless it is an empty string, which represents all users.
           user_id = (i_trigger.UserId == '') ? '' : Puppet::Util::Windows::SID.sid_to_name(Puppet::Util::Windows::SID.name_to_sid(i_trigger.UserId))
           manifest_hash['schedule'] = 'logon'
           manifest_hash['user_id'] = user_id
         end
-
         manifest_hash
       end
 
@@ -790,6 +820,12 @@ module PuppetX::PuppetLabs::ScheduledTask
 
         # ITrigger specific settings
         case i_trigger.Type
+        when Type::TASK_TRIGGER_BOOT
+	  if manifest_hash['minutes_delay']
+          minutes_delay = manifest_hash['minutes_delay']
+          i_trigger.Delay = "PT#{minutes_delay}M"
+        end
+        
         when Type::TASK_TRIGGER_DAILY
           # https://msdn.microsoft.com/en-us/library/windows/desktop/aa446858(v=vs.85).aspx
           i_trigger.DaysInterval = Integer(manifest_hash['every'] || 1)

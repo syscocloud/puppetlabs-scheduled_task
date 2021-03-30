@@ -58,6 +58,10 @@ Puppet::Type.type(:scheduled_task).provide(:taskscheduler_api2) do
     task.compatibility
   end
 
+  def description
+    task.description
+  end
+
   def trigger
     @triggers ||= task.triggers.compact # remove nils for unsupported trigger types
   end
@@ -110,6 +114,10 @@ Puppet::Type.type(:scheduled_task).provide(:taskscheduler_api2) do
     task.compatibility = value
   end
 
+  def description=(value)
+    task.description = value
+  end
+
   def trigger=(value)
     desired_triggers = value.is_a?(Array) ? value : [value]
     current_triggers = trigger.is_a?(Array) ? trigger : [trigger]
@@ -160,7 +168,7 @@ Puppet::Type.type(:scheduled_task).provide(:taskscheduler_api2) do
     @task = PuppetX::PuppetLabs::ScheduledTask::Task.new(resource[:name])
     self.command = resource[:command]
 
-    [:arguments, :working_dir, :enabled, :trigger, :user, :compatibility].each do |prop|
+    [:arguments, :working_dir, :enabled, :trigger, :user, :compatibility, :description].each do |prop|
       send("#{prop}=", resource[prop]) if resource[prop]
     end
   end

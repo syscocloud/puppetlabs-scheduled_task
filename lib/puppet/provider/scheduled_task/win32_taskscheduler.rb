@@ -45,6 +45,10 @@ Puppet::Type.type(:scheduled_task).provide(:win32_taskscheduler) do
     task.working_directory
   end
 
+  def description
+    task.description
+  end
+
   def user
     account = task.account_information
     return 'system' if account == ''
@@ -99,6 +103,10 @@ Puppet::Type.type(:scheduled_task).provide(:win32_taskscheduler) do
     task.enabled = (value == :true)
   end
 
+  def description=(value)
+    task.description = value
+  end
+
   def trigger=(value)
     desired_triggers = value.is_a?(Array) ? value : [value]
     current_triggers = trigger.is_a?(Array) ? trigger : [trigger]
@@ -149,7 +157,7 @@ Puppet::Type.type(:scheduled_task).provide(:win32_taskscheduler) do
     @task = PuppetX::PuppetLabs::ScheduledTask::Task.new(resource[:name], :v1_compatibility)
     self.command = resource[:command]
 
-    [:arguments, :working_dir, :enabled, :trigger, :user].each do |prop|
+    [:arguments, :working_dir, :enabled, :trigger, :user, :description].each do |prop|
       send("#{prop}=", resource[prop]) if resource[prop]
     end
   end
