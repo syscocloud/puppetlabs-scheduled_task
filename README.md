@@ -22,6 +22,8 @@ The legacy API does not receive improvements or new features, meaning that if yo
 <a id="beginning-with-scheduled_task"></a>
 ### Beginning with scheduled_task
 
+If you install from git by git clone, execute `puppet generate types --environment YOUR_PUPPET_ENVIRONMENT` before use.
+
 The scheduled_task module adapts the Puppet [scheduled_task](https://puppet.com/docs/puppet/latest/types/scheduled_task.html) resource to run using a modern API.
 To get started, install the module and any existing `scheduled_task` resources will use the V2 API **by default**.
 If you want to continue using the provider for the legacy API you will _need_ to declare that in your manifests.
